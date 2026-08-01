@@ -6,6 +6,7 @@ import static org.telegram.messenger.AndroidUtilities.lerp;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.view.Gravity;
+import android.view.View;
 import android.widget.FrameLayout;
 
 import androidx.annotation.DrawableRes;
@@ -20,6 +21,7 @@ import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.blur3.BlurredBackgroundDrawableViewFactory;
 import org.telegram.ui.Components.blur3.drawable.color.BlurredBackgroundColorProvider;
 import org.telegram.ui.Components.chat.buttons.ChatActivityBlurredRoundPageDownButton;
+import org.telegram.ui.Components.chat.buttons.ChatActivityBlurredRoundSearchButtonsCapsule;
 
 import me.vkryl.android.AnimatorUtils;
 import me.vkryl.android.animator.BoolAnimator;
@@ -65,6 +67,8 @@ public class ChatActivitySideControlsButtonsLayout extends FrameLayout implement
     private final BlurredBackgroundDrawableViewFactory blurredBackgroundDrawableViewFactory;
     private final ButtonHolder[] buttonHolders = new ButtonHolder[BUTTONS_COUNT];
 
+    private ChatActivityBlurredRoundSearchButtonsCapsule searchCapsule;
+
     private ButtonOnClickListener onClickListener;
     private ButtonOnLongClickListener onLongClickListener;
 
@@ -103,7 +107,11 @@ public class ChatActivitySideControlsButtonsLayout extends FrameLayout implement
     public void updateColors() {
         for (ButtonHolder holder : buttonHolders) {
             if (holder != null) {
-                holder.button.updateColors();
+                if (holder.button instanceof ChatActivityBlurredRoundPageDownButton) {
+                    ((ChatActivityBlurredRoundPageDownButton) holder.button).updateColors();
+                } else if (holder.button instanceof ChatActivityBlurredRoundSearchButtonsCapsule) {
+                    ((ChatActivityBlurredRoundSearchButtonsCapsule) holder.button).updateColors();
+                }
             }
         }
     }
@@ -119,13 +127,19 @@ public class ChatActivitySideControlsButtonsLayout extends FrameLayout implement
 
     public void setButtonCount(final int buttonId, int count, boolean animated) {
         final ButtonHolder holder = getOrCreateButtonHolder(buttonId);
-        holder.button.setCount(count, animated);
+        if (holder.button instanceof ChatActivityBlurredRoundPageDownButton) {
+            ((ChatActivityBlurredRoundPageDownButton) holder.button).setCount(count, animated);
+        } else if (holder.button instanceof ChatActivityBlurredRoundSearchButtonsCapsule) {
+            ((ChatActivityBlurredRoundSearchButtonsCapsule) holder.button).setCount(count, animated);
+        }
         holder.counterVisibilityAnimator.setValue(count > 0, animated);
     }
 
     public void setButtonLoading(final int buttonId, boolean loading, boolean animated) {
         final ButtonHolder holder = getOrCreateButtonHolder(buttonId);
-        holder.button.showLoading(loading, animated);
+        if (holder.button instanceof ChatActivityBlurredRoundPageDownButton) {
+            ((ChatActivityBlurredRoundPageDownButton) holder.button).showLoading(loading, animated);
+        }
     }
 
     public boolean isButtonVisible(final int buttonId) {
@@ -136,7 +150,17 @@ public class ChatActivitySideControlsButtonsLayout extends FrameLayout implement
 
     public void setButtonEnabled(final int buttonId, boolean enabled, boolean animated) {
         ButtonHolder holder = getOrCreateButtonHolder(buttonId);
-        holder.button.setEnabled(enabled, animated);
+        if (holder.button instanceof ChatActivityBlurredRoundPageDownButton) {
+            ((ChatActivityBlurredRoundPageDownButton) holder.button).setEnabled(enabled, animated);
+        } else if (holder.button instanceof ChatActivityBlurredRoundSearchButtonsCapsule) {
+            final ChatActivityBlurredRoundSearchButtonsCapsule capsule = (ChatActivityBlurredRoundSearchButtonsCapsule) holder.button;
+            if (buttonId == BUTTON_SEARCH_UP) {
+                capsule.setButtonEnabled(enabled, true, animated);
+            } else if (buttonId == BUTTON_SEARCH_DOWN) {
+                capsule.setButtonEnabled(true, enabled, animated);
+            }
+
+        }
     }
 
 
@@ -160,6 +184,11 @@ public class ChatActivitySideControlsButtonsLayout extends FrameLayout implement
             ButtonHolder holder = buttonHolders[buttonId];
 
             if (holder == null) {
+                continue;
+            }
+
+            // The two search buttons share a single capsule view; position it once.
+            if (buttonId == BUTTON_SEARCH_DOWN) {
                 continue;
             }
 
@@ -206,6 +235,36 @@ public class ChatActivitySideControlsButtonsLayout extends FrameLayout implement
                 buttonId == BUTTON_ATTACH ? CubicBezierInterpolator.EASE_OUT_QUINT : AnimatorUtils.DECELERATE_INTERPOLATOR,
                 buttonId == BUTTON_ATTACH ? 300 : 280);
 
+            if (buttonId == BUTTON_SEARCH_UP || buttonId == BUTTON_SEARCH_DOWN) {
+                if (searchCapsule == null) {
+                    searchCapsule = ChatActivityBlurredRoundSearchButtonsCapsule.create(
+                        getContext(),
+                        resourcesProvider,
+                        blurredBackgroundDrawableViewFactory,
+                        colorProvider,
+                        buttonIcons[BUTTON_SEARCH_UP],
+                        buttonIcons[BUTTON_SEARCH_DOWN]
+                    );
+                    searchCapsule.setPivotX(dp(ChatActivityBlurredRoundSearchButtonsCapsule.BUTTON_WIDTH / 2f));
+                    searchCapsule.setPivotY(dp(ChatActivityBlurredRoundSearchButtonsCapsule.CAPSULE_HEIGHT / 2f));
+                    searchCapsule.setVisibility(GONE);
+                    searchCapsule.setUpClickListener(v -> {
+                        if (onClickListener != null) {
+                            onClickListener.onClick(BUTTON_SEARCH_UP, v);
+                        }
+                    });
+                    searchCapsule.setDownClickListener(v -> {
+                        if (onClickListener != null) {
+                            onClickListener.onClick(BUTTON_SEARCH_DOWN, v);
+                        }
+                    });
+                    addView(searchCapsule, LayoutHelper.createFrame(ChatActivityBlurredRoundSearchButtonsCapsule.BUTTON_WIDTH, ChatActivityBlurredRoundSearchButtonsCapsule.CAPSULE_HEIGHT, gravity));
+                }
+                buttonHolders[buttonId] = new ButtonHolder(searchCapsule, visibilityAnimator, counterVisibilityAnimator);
+                checkButtonsPositionsAndVisibility();
+                return buttonHolders[buttonId];
+            }
+
             int size = 56, iconSize = 48;
             if (buttonId == BUTTON_ATTACH) {
                 size = 50;
@@ -220,6 +279,9 @@ public class ChatActivitySideControlsButtonsLayout extends FrameLayout implement
                 buttonIcons[buttonId]
             );
 
+            // The page-down (scroll-to-bottom) button blends into the header capsule; its own
+            // circle is hidden, only the press highlight shows on hold/click.
+            button.setDrawCircleBackground(false);
             button.setPivotX(dp(size / 2f));
             button.setPivotY(dp(size / 2f + 8));
             button.setVisibility(GONE);
@@ -236,9 +298,6 @@ public class ChatActivitySideControlsButtonsLayout extends FrameLayout implement
                 return false;
             });
 
-            if (buttonId == BUTTON_SEARCH_UP) {
-                button.reverseIconByY();
-            }
             if (buttonId == BUTTON_PAGE_DOWN) {
                 button.reverseCounter();
             }
@@ -258,11 +317,11 @@ public class ChatActivitySideControlsButtonsLayout extends FrameLayout implement
     }
 
     private static class ButtonHolder {
-        public final ChatActivityBlurredRoundPageDownButton button;
+        public final View button;
         public final BoolAnimator visibilityAnimator;
         public final BoolAnimator counterVisibilityAnimator;
 
-        private ButtonHolder(ChatActivityBlurredRoundPageDownButton button, BoolAnimator visibilityAnimator, BoolAnimator counterVisibilityAnimator) {
+        private ButtonHolder(View button, BoolAnimator visibilityAnimator, BoolAnimator counterVisibilityAnimator) {
             this.button = button;
             this.visibilityAnimator = visibilityAnimator;
             this.counterVisibilityAnimator = counterVisibilityAnimator;
