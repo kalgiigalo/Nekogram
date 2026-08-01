@@ -18,6 +18,7 @@ import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.FileLoader;
 import org.telegram.messenger.ImageLoader;
 import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.R;
 import org.telegram.messenger.SharedConfig;
 import org.telegram.ui.ActionBar.Theme;
@@ -31,6 +32,7 @@ public class UpdateLayout extends IUpdateLayout {
     private RadialProgress2 updateLayoutIcon;
     private AnimatedTextView updateTextView;
     private AnimatedTextView.AnimatedTextDrawable updateSizeTextView;
+    private HintView updateDismissHint;
 
     private final Activity activity;
     private final ViewGroup sideMenuContainer;
@@ -65,6 +67,21 @@ public class UpdateLayout extends IUpdateLayout {
         updateLayout.setTranslationY(dp(44));
         updateLayout.setBackground(Theme.getSelectorDrawable(0x40ffffff, false));
         sideMenuContainer.addView(updateLayout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 44, Gravity.LEFT | Gravity.BOTTOM));
+        updateLayout.setOnLongClickListener(v -> {
+            if (SharedConfig.isAppUpdateAvailable()) {
+                String fileName = FileLoader.getAttachFileName(SharedConfig.pendingAppUpdate.document);
+                if (FileLoader.getInstance(currentAccount).isLoadingFile(fileName)) {
+                    FileLoader.getInstance(currentAccount).cancelLoadFile(SharedConfig.pendingAppUpdate.document);
+                }
+                SharedConfig.dismissedAppUpdateBuildVersion = SharedConfig.pendingAppUpdateBuildVersion;
+                SharedConfig.saveConfig();
+                // Prevent an in-flight show animation from changing the layout after dismissal.
+                updateLayout.animate().cancel();
+                // A dismissed banner must stop covering the navigation UI immediately.
+                updateAppUpdateViews(currentAccount, false);
+            }
+            return true;
+        });
         updateLayout.setOnClickListener(v -> {
             if (!SharedConfig.isAppUpdateAvailable()) {
                 return;
@@ -124,7 +141,7 @@ public class UpdateLayout extends IUpdateLayout {
         if (sideMenuContainer == null) {
             return;
         }
-        if (SharedConfig.isAppUpdateAvailable()) {
+        if (SharedConfig.isAppUpdateAvailable() && SharedConfig.dismissedAppUpdateBuildVersion != SharedConfig.pendingAppUpdateBuildVersion) {
             createUpdateUI(currentAccount);
 
             String fileName = FileLoader.getAttachFileName(SharedConfig.pendingAppUpdate.document);
@@ -158,6 +175,7 @@ public class UpdateLayout extends IUpdateLayout {
             } else {
                 updateLayout.setTranslationY(0);
             }
+            showUpdateDismissHintIfNeeded();
         } else {
             if (updateLayout == null || updateLayout.getTag() == null) {
                 return;
@@ -170,16 +188,53 @@ public class UpdateLayout extends IUpdateLayout {
                         if (updateLayout.getTag() == null) {
                             updateLayout.setVisibility(View.INVISIBLE);
                         }
+                        // Shrink the wrapper so the hidden banner no longer occupies space.
+                        notifyWrapper();
                     }
                 }).setDuration(180).start();
             } else {
                 updateLayout.setTranslationY(dp(44));
                 updateLayout.setVisibility(View.INVISIBLE);
+                // Shrink the wrapper so the hidden banner no longer occupies space.
+                notifyWrapper();
             }
         }
     }
 
+    private void showUpdateDismissHintIfNeeded() {
+        final String preferenceKey = "appUpdateDismissHint";
+        boolean firstTime = MessagesController.getGlobalMainSettings().getInt(preferenceKey, 0) < 1;
+        if (!firstTime && !SharedConfig.showAppUpdateDismissHint) {
+            return;
+        }
+        // Consume the remote-update request so progress/UI refresh notifications do not show it again.
+        SharedConfig.showAppUpdateDismissHint = false;
+        AndroidUtilities.runOnUIThread(() -> {
+            if (updateLayout == null || updateLayout.getVisibility() != View.VISIBLE || updateLayout.getTag() == null) {
+                return;
+            }
+            ViewGroup root = activity.findViewById(android.R.id.content);
+            if (root == null) {
+                return;
+            }
+            if (updateDismissHint == null) {
+                updateDismissHint = new HintView(activity, 8);
+                updateDismissHint.setText(LocaleController.getString(R.string.AppUpdateDismissTooltipHint));
+                updateDismissHint.setShowingDuration(4000);
+                root.addView(updateDismissHint, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.TOP));
+            }
+            if (updateDismissHint.showForView(updateLayout, true)) {
+                MessagesController.getGlobalMainSettings().edit().putInt(preferenceKey, 1).apply();
+            }
+        }, 250);
+    }
+
     private void setUpdateText(String text, boolean animate) {
         updateTextView.setText(text, animate);
+    }
+
+    /** Ask the wrapper to re-measure so it collapses when the banner is hidden. */
+    private void notifyWrapper() {
+        sideMenuContainer.requestLayout();
     }
 }

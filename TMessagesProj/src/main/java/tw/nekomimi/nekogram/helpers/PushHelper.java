@@ -45,7 +45,7 @@ public class PushHelper {
             SharedConfig.lastUpdateCheckTime = System.currentTimeMillis();
             SharedConfig.saveConfig();
             AndroidUtilities.runOnUIThread(() -> {
-                SharedConfig.setNewAppVersionAvailable(res);
+                SharedConfig.setNewAppVersionAvailable(res, true);
                 NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.appUpdateAvailable);
             });
         });

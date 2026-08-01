@@ -6,6 +6,7 @@ import android.text.TextUtils;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.R;
+import org.telegram.messenger.SharedConfig;
 import org.telegram.messenger.browser.Browser;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.Components.BulletinFactory;
@@ -73,6 +74,9 @@ public class SettingsHelper {
                         SettingsHelper.copyReportId();
                         return;
                     case "update":
+                        // Explicit tg://update is also an explicit request to show the banner again.
+                        SharedConfig.dismissedAppUpdateBuildVersion = 0;
+                        SharedConfig.saveConfig();
                         LaunchActivity.instance.checkAppUpdate(true, progress);
                         return;
                     default:
