@@ -107,7 +107,7 @@ public class InlineBotHelper extends BaseController {
         var text = s.trim();
         if (text.contains(" ")) return null;
         if (text.startsWith("https://x.com/") || text.startsWith("https://twitter.com/")) {
-            return "TwPicBot";
+            return "NekoTwPicBot";
         }
         return null;
     }
