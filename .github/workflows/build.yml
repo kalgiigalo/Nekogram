@@ -12,7 +12,7 @@ on:
 
 jobs:
   build:
-    runs-on: blacksmith-32vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     permissions:
       id-token: write
       attestations: write
@@ -34,9 +34,9 @@ jobs:
           distribution: 'temurin'
 
       - name: Set up ccache
-        uses: Chocobo1/setup-ccache-action@v1
+        uses: hendrikmuhs/ccache-action@v1.2
         with:
-          remove_stale_cache: false
+          max-size: 5G
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
@@ -53,7 +53,7 @@ jobs:
           mkdir -p ~/.gradle
           echo 'org.gradle.caching=true' >> ~/.gradle/gradle.properties
           echo 'org.gradle.parallel=true' >> ~/.gradle/gradle.properties
-          echo 'org.gradle.jvmargs=-Xmx56g -Dfile.encoding=UTF-8 -XX:+UseParallelGC' >> ~/.gradle/gradle.properties
+          echo 'org.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8 -XX:+UseParallelGC' >> ~/.gradle/gradle.properties
           echo 'android.native.buildOutput=verbose' >> ~/.gradle/gradle.properties
 
       - name: Configure Signing
@@ -71,17 +71,13 @@ jobs:
           echo "apiHash=${{ secrets.API_HASH }}" >> local.properties
           echo "helperBotId=${{ secrets.HELPER_BOT_ID }}" >> local.properties
           echo "helperBotUsername=${{ secrets.HELPER_BOT_USERNAME }}" >> local.properties
-          echo "sentryDsn=${{ secrets.SENTRY_DSN }}" >> local.properties
-          echo "mapsApiKey=${{ secrets.MAPS_API_KEY }}" >> local.properties
 
           echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > TMessagesProj_App/google-services.json
-          echo "${{ secrets.SENTRY_PROPERTIES }}" | base64 --decode > sentry.properties
 
       - name: Build with Gradle
         run: |
           ./gradlew assembleRelease
           ./gradlew bundlePlay
-          ./gradlew sentryUploadSourceBundlePlay
 
       - name: Attest
         uses: actions/attest@v4

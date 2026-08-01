@@ -3,21 +3,10 @@ import com.android.build.api.variant.FilterConfiguration
 plugins {
     id 'com.android.application'
     id 'com.google.gms.google-services'
-    id 'io.sentry.android.gradle'
 }
 
 dependencies {
     implementation project(':TMessagesProj')
-}
-
-sentry {
-    uploadNativeSymbols = true
-    includeSourceContext = true
-    additionalSourceDirsForSourceContext = [ '../TMessagesProj/src/main/java' ]
-    autoInstallation {
-        enabled = false
-    }
-    ignoredBuildTypes = ["debug"]
 }
 
 android {
@@ -74,7 +63,7 @@ android {
 
         multiDexEnabled true
 
-        manifestPlaceholders = [MAPS_API_KEY: localProperties.get("mapsApiKey")]
+        manifestPlaceholders = [MAPS_API_KEY: localProperties.get("mapsApiKey", "")]
     }
 
     bundle {
