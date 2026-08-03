@@ -86,6 +86,12 @@ public class ChatActivityBlurredRoundPageDownButton extends FrameLayout {
         }
     }
 
+    public void setDrawCircleBackground(boolean draw) {
+        if (buttonView != null) {
+            buttonView.setDrawCircleBackground(draw);
+        }
+    }
+
     public static ChatActivityBlurredRoundPageDownButton create(
         Context context,
         int size, int iconSize,

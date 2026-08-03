@@ -49,15 +49,27 @@ public class ChatActivityBlurredRoundButton extends FrameLayout implements Facto
     private CircularProgressDrawable loadingIndicatorDrawable;
     private Theme.ResourcesProvider resourcesProvider;
 
+    private boolean drawCircleBackground = true;
+
+    /** When true, the blurred circle background is drawn; when false, only the icon shows. */
+    public void setDrawCircleBackground(boolean draw) {
+        drawCircleBackground = draw;
+        invalidate();
+    }
+
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
-        backgroundDrawable.setBounds(0, 0, w, h);
+        if (backgroundDrawable != null) {
+            backgroundDrawable.setBounds(0, 0, w, h);
+        }
     }
 
     @Override
     public void draw(@NonNull Canvas canvas) {
-        backgroundDrawable.draw(canvas);
+        if (drawCircleBackground && backgroundDrawable != null) {
+            backgroundDrawable.draw(canvas);
+        }
         super.draw(canvas);
     }
 

@@ -1516,7 +1516,7 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
         textLeft += additionalTextLeft;
 
         if (menu != null && menu.getVisibility() != GONE) {
-            int menuLeft = menu.searchFieldVisible() ? dp(menuOccupyBack ? 0 : AndroidUtilities.isTablet() ? 74 : 66) : (getMeasuredWidth()) - menu.getMeasuredWidth();
+            int menuLeft = menu.searchFieldVisible() ? dp(menuOccupyBack ? 0 : AndroidUtilities.isTablet() ? 74 : 66) - dp(19) : (getMeasuredWidth()) - menu.getMeasuredWidth();
             menu.layout(menuLeft, additionalTop, menuLeft + menu.getMeasuredWidth(), additionalTop + menu.getMeasuredHeight());
         }
 
@@ -2177,28 +2177,28 @@ public class ActionBar extends FrameLayout implements FactorAnimator.Target, The
             final int left, right;
             if (chatAvatarContainer != null) {
                 final int width = lerp(Math.min(widthDefault, (int) animatorAvatarContainerWidth.getFactor() + p * 2), widthDefault, Math.max(searchFactor, actionModeFactor));
-                left = (rightDefault + leftDefault - width) / 2;
+                // Pin the chat avatar container so its left edge sits right at the back button's
+                // highlight-circle perimeter (the back button is dp(46) wide, its 20dp-radius
+                // circle spans to about dp(47)).
+                left = leftDefault;
                 right = left + width;
                 chatAvatarContainer.setTranslationX(left
                     - ((MarginLayoutParams)(chatAvatarContainer.getLayoutParams())).leftMargin
                     - chatAvatarContainer.getLeftPadding()
-                    + p + dp(3));
+                    + p + dp(3) - dp(14));
             } else {
-                left = leftDefault;
-                right = rightDefault;
+                left = 0;
+                right = getWidth();
             }
 
             glassDrawable.setBounds(left, t, right, b);
             glassDrawable.draw(canvas);
         }
-        if (glassDrawableBack != null && hasBackButton) {
+        if (glassDrawableBack != null && hasBackButton && glassOnlyBack) {
+            // Drawn only in the community create/edit screens (glassOnlyBack) where there is no
+            // full-width capsule. In chat/search the back button blends into the full capsule.
             glassDrawableBack.setBounds(0, t, s + p * 2, b);
             glassDrawableBack.draw(canvas);
-        }
-        if (glassDrawableMenu != null && menuWidth > 0 && !glassOnlyBack) {
-            glassDrawableMenu.setBounds(getWidth() - Math.max(s, menuWidth) - p * 2, t, getWidth(), b);
-            glassDrawableMenu.setAlpha(hasForcedMenuWidth ? 255 : (int) (255 * animatorHasMenuItems.getFloatValue()));
-            glassDrawableMenu.draw(canvas);
         }
 
         if (blurredBackground && actionBarColor != Color.TRANSPARENT) {

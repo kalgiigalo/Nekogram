@@ -84,6 +84,8 @@ public class ChatActivityChannelButtonsLayout extends FrameLayout implements Fac
         container.setClipToOutline(true);
         container.setOutlineProvider(ViewOutlineProviderImpl.boundsWithPaddingRoundRect(0, dp(22)));
         addView(container, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 44, Gravity.CENTER_VERTICAL));
+
+        setupDrawableForContainer();
     }
 
     public void updateColors() {
@@ -136,6 +138,10 @@ public class ChatActivityChannelButtonsLayout extends FrameLayout implements Fac
             }
 
             ScaleStateListAnimator.apply(button, .13f, 2f);
+            // The buttons sit inside one big capsule (containerDrawable); each button's own
+            // circle is hidden so only the container capsule shows. The press highlight
+            // (selector) still appears when the button is held/clicked.
+            button.setDrawCircleBackground(false);
             button.setVisibility(GONE);
             button.setOnClickListener(v -> {
                 if (onClickListeners[buttonId] != null) {
@@ -413,10 +419,12 @@ public class ChatActivityChannelButtonsLayout extends FrameLayout implements Fac
 
     @Override
     protected boolean drawChild(@NonNull Canvas canvas, View child, long drawingTime) {
-        if (child == container && containerDrawable != null) {
+        // Draw the connecting capsule only when there are round buttons visible (search/gift/DM).
+        // In the plain join-button state the capsule would cover the text, so skip it there.
+        if (child == container && containerDrawable != null && (totalWidthLeft > 0 || totalWidthRight > 0)) {
             tmpRect.set(
-                totalWidthLeft + dp(1), 0,
-                getMeasuredWidth() - dp(1) - totalWidthRight,
+                dp(1), 0,
+                getMeasuredWidth() - dp(1),
                 getMeasuredHeight());
 
             tmpRect.round(AndroidUtilities.rectTmp2);
