@@ -546,6 +546,7 @@ public class MessagesController extends BaseController implements NotificationCe
     public boolean smsjobsStickyNotificationEnabled;
     public boolean collectDeviceStats;
     public boolean showFiltersTooltip;
+    public static final String DEFAULT_GIF_SEARCH_BOT = "NekoGIFsearchBot";
     public String venueSearchBot;
     public String storyVenueSearchBot;
     public String gifSearchBot;
@@ -1613,7 +1614,7 @@ public class MessagesController extends BaseController implements NotificationCe
         proxyDialogAddress = mainPreferences.getString("proxyDialogAddress", null);
         venueSearchBot = mainPreferences.getString("venueSearchBot", "foursquare");
         storyVenueSearchBot = mainPreferences.getString("storyVenueSearchBot", "foursquare");
-        gifSearchBot = mainPreferences.getString("gifSearchBot", "gif");
+        gifSearchBot = DEFAULT_GIF_SEARCH_BOT;
         imageSearchBot = mainPreferences.getString("imageSearchBot", "pic");
         blockedCountry = mainPreferences.getBoolean("blockedCountry", false);
         suggestedLangCode = mainPreferences.getString("suggestedLangCode", "en");
@@ -5728,9 +5729,11 @@ public class MessagesController extends BaseController implements NotificationCe
             if (config.venue_search_username != null) {
                 venueSearchBot = config.venue_search_username;
             }
-            if (config.gif_search_username != null) {
-                gifSearchBot = config.gif_search_username;
-            }
+            // Nekogram: keep our own inline GIF search bot instead of the
+            // server-provided one (config.gif_search_username, usually "gif").
+            // The value below is still persisted to "gifSearchBot" further down,
+            // so this must stay pinned or the server value would win on restart.
+            gifSearchBot = DEFAULT_GIF_SEARCH_BOT;
             if (imageSearchBot != null) {
                 imageSearchBot = config.img_search_username;
             }
