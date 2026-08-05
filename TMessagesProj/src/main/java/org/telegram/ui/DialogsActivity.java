@@ -13808,21 +13808,10 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 presentFragment(new ProfileActivity(args));
             });
         }
-        // The archive is normally reached from the default All Chats filter. Replace New
-        // Group with an archive shortcut when that tab is hidden by Neko settings.
-        if (NekoConfig.hideAllTab) {
-            io.add(R.drawable.msg_archive, getString(R.string.ArchivedChats), () -> {
-                Bundle args = new Bundle();
-                args.putInt("folderId", 1);
-                args.putBoolean("onlySelect", onlySelect);
-                presentFragment(new DialogsActivity(args));
-            });
-        } else {
-            io.add(R.drawable.outline_groups_24, getString(R.string.NewGroup), () -> {
-                Bundle args = new Bundle();
-                presentFragment(new GroupCreateActivity(args));
-            });
-        }
+        io.add(R.drawable.outline_groups_24, getString(R.string.NewGroup), () -> {
+            Bundle args = new Bundle();
+            presentFragment(new GroupCreateActivity(args));
+        });
         if (NekoConfig.hideBottomNavigationBar) {
             io.add(R.drawable.msg_contacts, getString(R.string.Contacts), () -> {
                 Bundle args = new Bundle();
