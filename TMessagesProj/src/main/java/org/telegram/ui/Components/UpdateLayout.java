@@ -65,6 +65,14 @@ public class UpdateLayout extends IUpdateLayout {
         updateLayout.setTranslationY(dp(44));
         updateLayout.setBackground(Theme.getSelectorDrawable(0x40ffffff, false));
         sideMenuContainer.addView(updateLayout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 44, Gravity.LEFT | Gravity.BOTTOM));
+        updateLayout.setOnLongClickListener(v -> {
+            if (SharedConfig.isAppUpdateAvailable()) {
+                SharedConfig.dismissedAppUpdateBuildVersion = SharedConfig.pendingAppUpdateBuildVersion;
+                SharedConfig.saveConfig();
+                updateAppUpdateViews(currentAccount, true);
+            }
+            return true;
+        });
         updateLayout.setOnClickListener(v -> {
             if (!SharedConfig.isAppUpdateAvailable()) {
                 return;
@@ -124,7 +132,7 @@ public class UpdateLayout extends IUpdateLayout {
         if (sideMenuContainer == null) {
             return;
         }
-        if (SharedConfig.isAppUpdateAvailable()) {
+        if (SharedConfig.isAppUpdateAvailable() && SharedConfig.dismissedAppUpdateBuildVersion != SharedConfig.pendingAppUpdateBuildVersion) {
             createUpdateUI(currentAccount);
 
             String fileName = FileLoader.getAttachFileName(SharedConfig.pendingAppUpdate.document);

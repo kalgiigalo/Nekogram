@@ -327,6 +327,8 @@ public class SharedConfig {
 
     public static TLRPC.TL_help_appUpdate pendingAppUpdate;
     public static int pendingAppUpdateBuildVersion;
+    /** Build version for which the update banner was dismissed with a long press. */
+    public static int dismissedAppUpdateBuildVersion;
     public static long lastUpdateCheckTime;
 
     public static boolean hasEmailLogin;
@@ -471,6 +473,7 @@ public class SharedConfig {
                         String str = Base64.encodeToString(data.toByteArray(), Base64.DEFAULT);
                         editor.putString("appUpdate", str);
                         editor.putInt("appUpdateBuild", pendingAppUpdateBuildVersion);
+                        editor.putInt("appUpdateDismissedBuild", dismissedAppUpdateBuildVersion);
                         data.cleanup();
                     } catch (Exception ignore) {
 
@@ -550,6 +553,7 @@ public class SharedConfig {
                 String update = preferences.getString("appUpdate", null);
                 if (update != null) {
                     pendingAppUpdateBuildVersion = preferences.getInt("appUpdateBuild", buildVersion());
+                    dismissedAppUpdateBuildVersion = preferences.getInt("appUpdateDismissedBuild", 0);
                     byte[] arr = Base64.decode(update, Base64.DEFAULT);
                     if (arr != null) {
                         SerializedData data = new SerializedData(arr);
@@ -803,6 +807,8 @@ public class SharedConfig {
         //}
         pendingAppUpdate = update;
         pendingAppUpdateBuildVersion = versionCode;
+        // A newly received update is allowed to show the banner again.
+        dismissedAppUpdateBuildVersion = 0;
         saveConfig();
         return true;
     }
